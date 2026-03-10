@@ -30,8 +30,10 @@ function getTitle(prop: PropertyValue | undefined): string {
 }
 
 function getSelect(prop: PropertyValue | undefined): string | null {
-  if (!prop || prop.type !== "select" || !prop.select) return null;
-  return prop.select.name;
+  if (!prop) return null;
+  if (prop.type === "select" && prop.select) return prop.select.name;
+  if (prop.type === "status" && prop.status) return prop.status.name;
+  return null;
 }
 
 function getMultiSelect(prop: PropertyValue | undefined): string[] {
@@ -103,6 +105,37 @@ function parsePage(page: PageObjectResponse): NotionPost {
   };
 }
 
+// --- Query database ---
+// SDK v5 removed databases.query in favor of dataSources.query, but the
+// /data_sources endpoint doesn't find databases in all workspaces.
+// Use request() to hit /databases/{id}/query directly (works with pinned
+// Notion-Version: 2022-06-28 in client.ts).
+
+interface DatabaseQueryParams {
+  filter?: unknown;
+  sorts?: unknown;
+  start_cursor?: string;
+  page_size?: number;
+}
+
+interface DatabaseQueryResponse {
+  results: PageObjectResponse[];
+  has_more: boolean;
+  next_cursor: string | null;
+}
+
+async function queryDatabase(
+  notion: ReturnType<typeof getNotion>,
+  databaseId: string,
+  params: DatabaseQueryParams
+): Promise<DatabaseQueryResponse> {
+  return notion.request<DatabaseQueryResponse>({
+    path: `databases/${databaseId}/query`,
+    method: "post",
+    body: params as Record<string, unknown>,
+  });
+}
+
 // --- Poll a single project's Notion database ---
 
 export async function pollProject(project: ProjectConfig): Promise<NotionPost[]> {
@@ -111,13 +144,12 @@ export async function pollProject(project: ProjectConfig): Promise<NotionPost[]>
   let cursor: string | undefined;
 
   do {
-    const response = await notion.dataSources.query({
-      data_source_id: project.notion.databaseId,
+    const response = await queryDatabase(notion, project.notion.databaseId, {
       filter: {
         and: [
           {
             property: PROP.STATUS,
-            select: { equals: "Scheduled" },
+            status: { equals: "Scheduled" },
           },
           {
             property: PROP.LATE_POST_ID,
@@ -131,7 +163,7 @@ export async function pollProject(project: ProjectConfig): Promise<NotionPost[]>
 
     for (const page of response.results) {
       if ("properties" in page) {
-        posts.push(parsePage(page as PageObjectResponse));
+        posts.push(parsePage(page));
       }
     }
 

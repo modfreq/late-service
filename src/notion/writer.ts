@@ -8,7 +8,7 @@ export async function updateStatus(pageId: string, status: PostStatus): Promise<
   await getNotion().pages.update({
     page_id: pageId,
     properties: {
-      [PROP.STATUS]: { select: { name: status } },
+      [PROP.STATUS]: { status: { name: status } },
     },
   });
   logger.debug({ pageId, status }, "Updated Notion status");
@@ -37,7 +37,7 @@ export async function writeSyncError(pageId: string, error: string): Promise<voi
       [PROP.SYNC_ERROR]: {
         rich_text: [{ text: { content: error.slice(0, 2000) } }],
       },
-      [PROP.STATUS]: { select: { name: "Failed" } },
+      [PROP.STATUS]: { status: { name: "Failed" } },
     },
   });
   logger.debug({ pageId }, "Wrote sync error to Notion");
@@ -87,7 +87,7 @@ export async function markPublished(pageId: string, postUrls: string): Promise<v
   await getNotion().pages.update({
     page_id: pageId,
     properties: {
-      [PROP.STATUS]: { select: { name: "Published" } },
+      [PROP.STATUS]: { status: { name: "Published" } },
       [PROP.POST_URLS]: {
         rich_text: [{ text: { content: postUrls.slice(0, 2000) } }],
       },
