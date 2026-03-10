@@ -1,0 +1,35 @@
+{
+  "name": "late-service",
+  "version": "1.0.0",
+  "description": "Notion to getlate.dev social media publishing bridge",
+  "type": "module",
+  "main": "dist/index.js",
+  "scripts": {
+    "build": "tsc && cp src/db/schema.sql dist/db/schema.sql",
+    "start": "node dist/index.js",
+    "dev": "tsx watch src/index.ts"
+  },
+  "private": true,
+  "engines": {
+    "node": ">=22"
+  },
+  "dependencies": {
+    "@notionhq/client": "^5.12.0",
+    "better-sqlite3": "^12.6.2",
+    "dotenv": "^17.3.1",
+    "fastify": "^5.8.2",
+    "node-cron": "^4.2.1",
+    "nodemailer": "^8.0.2",
+    "pino": "^10.3.1",
+    "yaml": "^2.8.2",
+    "zod": "^4.3.6"
+  },
+  "devDependencies": {
+    "@types/better-sqlite3": "^7.6.13",
+    "@types/node": "^25.4.0",
+    "@types/node-cron": "^3.0.11",
+    "@types/nodemailer": "^7.0.11",
+    "tsx": "^4.21.0",
+    "typescript": "^5.9.3"
+  }
+}
