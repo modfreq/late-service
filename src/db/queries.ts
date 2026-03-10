@@ -60,6 +60,7 @@ export function updatePost(
       | "last_error"
       | "retry_count"
       | "next_analytics_at"
+      | "scheduled_for"
     >
   >
 ): void {
@@ -93,6 +94,17 @@ export function getPostsByProject(projectId: string): SyncPost[] {
   return getDb()
     .prepare("SELECT * FROM sync_posts WHERE project_id = ? ORDER BY created_at DESC")
     .all(projectId) as SyncPost[];
+}
+
+export function getScheduledPostsPastDue(): SyncPost[] {
+  return getDb()
+    .prepare(
+      `SELECT * FROM sync_posts
+       WHERE status = 'scheduled'
+         AND scheduled_for IS NOT NULL
+         AND scheduled_for <= datetime('now', '-15 minutes')`
+    )
+    .all() as SyncPost[];
 }
 
 export function getRetryablePosts(): SyncPost[] {

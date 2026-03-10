@@ -73,7 +73,7 @@ const PLATFORM_TEXT_PROP: Record<Platform, string> = {
 
 // --- Parse a Notion page into a NotionPost ---
 
-function parsePage(page: PageObjectResponse): NotionPost {
+export function parsePage(page: PageObjectResponse): NotionPost {
   const props = page.properties;
 
   const platforms = getMultiSelect(props[PROP.PLATFORMS]) as Platform[];
@@ -134,6 +134,24 @@ async function queryDatabase(
     method: "post",
     body: params as Record<string, unknown>,
   });
+}
+
+// --- Fetch a single Notion page by ID ---
+
+export async function fetchNotionPost(
+  pageId: string
+): Promise<NotionPost | null> {
+  const notion = getNotion();
+  try {
+    const page = await notion.pages.retrieve({ page_id: pageId });
+    if ("properties" in page) {
+      return parsePage(page as PageObjectResponse);
+    }
+    return null;
+  } catch (err) {
+    logger.error({ pageId, err }, "Failed to fetch Notion page");
+    return null;
+  }
 }
 
 // --- Poll a single project's Notion database ---
