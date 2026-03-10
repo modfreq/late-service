@@ -4,6 +4,7 @@ import {
   runStaleCheck,
   runRetryCycle,
 } from "../sync/orchestrator.js";
+import { runAnalyticsSyncCycle } from "../sync/analytics-syncer.js";
 import { cleanOldActivity } from "../db/queries.js";
 import { logger } from "../logger.js";
 import type { AppConfig } from "../config.js";
@@ -64,6 +65,15 @@ export function startCrons(config: AppConfig): void {
     task: cron.schedule(
       "*/10 * * * *",
       withNoOverlap("retry", () => runRetryCycle(config))
+    ),
+  });
+
+  // Analytics sync — every 15 minutes
+  tasks.push({
+    name: "analytics",
+    task: cron.schedule(
+      "*/15 * * * *",
+      withNoOverlap("analytics", () => runAnalyticsSyncCycle())
     ),
   });
 

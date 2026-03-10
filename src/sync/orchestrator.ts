@@ -172,7 +172,7 @@ export async function runStaleCheck(): Promise<void> {
             latePost.publishedAt ?? new Date().toISOString(),
           post_urls: postUrls || null,
           next_analytics_at: new Date(
-            Date.now() + 24 * 60 * 60 * 1000
+            Date.now() + 60 * 60 * 1000
           ).toISOString(),
         });
 
