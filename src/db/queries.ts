@@ -177,3 +177,82 @@ export function cleanOldActivity(daysToKeep = 7): void {
     )
     .run(daysToKeep);
 }
+
+// --- Dashboard queries ---
+
+export function getPostCountsByStatus(): Record<string, number> {
+  const rows = getDb()
+    .prepare("SELECT status, COUNT(*) as count FROM sync_posts GROUP BY status")
+    .all() as Array<{ status: string; count: number }>;
+  const result: Record<string, number> = {};
+  for (const row of rows) result[row.status] = row.count;
+  return result;
+}
+
+export function getPostCountsByProjectAndStatus(
+  projectId: string
+): Record<string, number> {
+  const rows = getDb()
+    .prepare(
+      "SELECT status, COUNT(*) as count FROM sync_posts WHERE project_id = ? GROUP BY status"
+    )
+    .all(projectId) as Array<{ status: string; count: number }>;
+  const result: Record<string, number> = {};
+  for (const row of rows) result[row.status] = row.count;
+  return result;
+}
+
+export function getPostsByProjectFiltered(
+  projectId: string,
+  status?: string
+): SyncPost[] {
+  if (status) {
+    return getDb()
+      .prepare(
+        "SELECT * FROM sync_posts WHERE project_id = ? AND status = ? ORDER BY created_at DESC"
+      )
+      .all(projectId, status) as SyncPost[];
+  }
+  return getPostsByProject(projectId);
+}
+
+export function getActivityFiltered(opts: {
+  level?: string;
+  project?: string;
+  limit: number;
+  offset: number;
+}): Array<{
+  id: number;
+  level: string;
+  project_id: string | null;
+  message: string;
+  details: string | null;
+  created_at: string;
+}> {
+  const conditions: string[] = [];
+  const params: unknown[] = [];
+
+  if (opts.level) {
+    conditions.push("level = ?");
+    params.push(opts.level);
+  }
+  if (opts.project) {
+    conditions.push("project_id = ?");
+    params.push(opts.project);
+  }
+
+  const where = conditions.length > 0 ? `WHERE ${conditions.join(" AND ")}` : "";
+  params.push(opts.limit, opts.offset);
+
+  return getDb()
+    .prepare(
+      `SELECT * FROM activity_log ${where} ORDER BY created_at DESC LIMIT ? OFFSET ?`
+    )
+    .all(...params) as any[];
+}
+
+export function getAllPosts(): SyncPost[] {
+  return getDb()
+    .prepare("SELECT * FROM sync_posts ORDER BY created_at DESC")
+    .all() as SyncPost[];
+}

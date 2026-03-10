@@ -6,6 +6,7 @@ import { initNotion } from "./notion/client.js";
 import { initLate } from "./late/client.js";
 import { runPollCycle } from "./sync/orchestrator.js";
 import { startCrons, stopCrons } from "./scheduler/cron.js";
+import { createServer, startServer } from "./dashboard/server.js";
 import { logger } from "./logger.js";
 
 async function main() {
@@ -41,10 +42,15 @@ async function main() {
   // Start cron jobs
   startCrons(config);
 
+  // Start dashboard
+  const server = createServer(config);
+  await startServer(server, config.env.DASHBOARD_PORT);
+
   // Graceful shutdown
   const shutdown = () => {
     logger.info("Shutting down...");
     stopCrons();
+    server.close();
     closeDb();
     logger.info("Shutdown complete");
     process.exit(0);
