@@ -2,6 +2,8 @@ import { resolve } from "node:path";
 import { loadConfig } from "./config.js";
 import { initDb, closeDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
+import { initNotion } from "./notion/client.js";
+import { pollAllProjects } from "./notion/poller.js";
 import { logger } from "./logger.js";
 
 async function main() {
@@ -19,6 +21,19 @@ async function main() {
   const db = initDb(dbPath);
   runMigrations(db);
   logger.info({ dbPath }, "Database initialized");
+
+  // Initialize Notion client
+  initNotion(config.env.NOTION_TOKEN);
+  logger.info("Notion client initialized");
+
+  // Initial poll to verify connectivity
+  const results = await pollAllProjects(config.projects);
+  for (const [projectId, posts] of results) {
+    logger.info(
+      { projectId, posts: posts.map((p) => ({ name: p.name, status: p.status, type: p.postType })) },
+      `Polled ${posts.length} scheduled post(s)`
+    );
+  }
 
   // Graceful shutdown
   const shutdown = () => {
