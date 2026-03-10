@@ -1,0 +1,16 @@
+projects:
+  - id: "alex-brown-io"
+    name: "AlexBrown.io"
+    enabled: true
+    notion:
+      databaseId: "31e1a1f5565980068f8fc5b104994b4d"
+    platforms:
+      linkedin:
+        accountId: "acc_xxx"
+        textProperty: "LinkedIn Text"
+      x:
+        accountId: "6998e4608ab8ae478b38fe22"
+        textProperty: "X Text"
+      instagram:
+        accountId: "acc_zzz"
+        textProperty: "Instagram Text"
