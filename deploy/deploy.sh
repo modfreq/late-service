@@ -9,7 +9,7 @@ APP_DIR="/opt/late-service"
 cd "$APP_DIR"
 
 echo "==> Pulling latest code..."
-git fetch origin main
+git fetch origin master
 git reset --hard origin/master
 
 echo "==> Installing dependencies..."
