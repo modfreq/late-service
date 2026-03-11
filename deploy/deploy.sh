@@ -10,13 +10,16 @@ cd "$APP_DIR"
 
 echo "==> Pulling latest code..."
 git fetch origin main
-git reset --hard origin/main
+git reset --hard origin/master
 
 echo "==> Installing dependencies..."
-npm ci --omit=dev
+npm ci
 
 echo "==> Building..."
 npm run build
+
+echo "==> Pruning dev dependencies..."
+npm prune --omit=dev
 
 echo "==> Restarting service..."
 sudo systemctl restart late-service
