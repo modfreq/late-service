@@ -1,0 +1,12 @@
+name: Deploy to Proxmox LXC
+
+on:
+  push:
+    branches: [main]
+
+jobs:
+  deploy:
+    runs-on: self-hosted
+    steps:
+      - name: Pull, build, and restart
+        run: /opt/late-service/deploy/deploy.sh

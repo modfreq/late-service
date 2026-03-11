@@ -1,0 +1,30 @@
+[Unit]
+Description=Late Service — Notion to getlate.dev bridge
+After=network.target
+
+[Service]
+Type=simple
+User=late
+Group=late
+WorkingDirectory=/opt/late-service
+ExecStart=/usr/bin/node dist/index.js
+Restart=always
+RestartSec=5
+
+# Environment
+EnvironmentFile=/opt/late-service/.env
+
+# Hardening
+NoNewPrivileges=true
+ProtectSystem=strict
+ProtectHome=true
+ReadWritePaths=/opt/late-service/data
+PrivateTmp=true
+
+# Logging (stdout/stderr go to journald)
+StandardOutput=journal
+StandardError=journal
+SyslogIdentifier=late-service
+
+[Install]
+WantedBy=multi-user.target
