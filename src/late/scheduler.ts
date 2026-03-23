@@ -21,51 +21,46 @@ import { logger } from "../logger.js";
 const TIMEZONE = "America/Los_Angeles";
 
 /**
- * If a datetime string has no timezone offset, interpret it in the configured
- * timezone and return a proper ISO string with offset.
- * Notion returns bare datetimes like "2026-03-25T10:00:00.000" with no offset.
+ * Convert a bare datetime (no timezone) from the configured timezone to UTC ISO string.
+ * Notion returns datetimes like "2026-03-25T10:00:00.000" with no offset.
+ * Late treats all times as UTC, so we need to convert: 10:00 AM PST → 18:00 UTC.
  */
 function applyTimezone(dateStr: string): string {
-  // Already has timezone info (Z, +HH:MM, or -HH:MM at end)
+  // Already has timezone info — pass through
   if (/[Zz]$/.test(dateStr) || /[+-]\d{2}:\d{2}$/.test(dateStr)) {
     return dateStr;
   }
 
-  // Date-only (no time component) — pass through as-is
+  // Date-only (no time component) — pass through
   if (!dateStr.includes("T")) {
     return dateStr;
   }
 
-  // Use Intl to get the UTC offset for the configured timezone at the given date
-  const date = new Date(dateStr + "Z"); // parse as UTC temporarily
+  // Get the UTC offset for TIMEZONE at this date by comparing formatted local vs UTC
+  const asUtc = new Date(dateStr + "Z");
   const formatter = new Intl.DateTimeFormat("en-US", {
     timeZone: TIMEZONE,
-    timeZoneName: "shortOffset",
+    year: "numeric", month: "2-digit", day: "2-digit",
+    hour: "2-digit", minute: "2-digit", second: "2-digit",
+    hour12: false,
   });
-  const parts = formatter.formatToParts(date);
-  const tzPart = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+  const localStr = formatter.format(asUtc);
+  // localStr is like "03/25/2026, 03:00:00" — the TIMEZONE representation of the UTC time
+  // The difference tells us the offset
 
-  // tzPart is like "GMT-7" or "GMT-8" or "GMT+5:30"
-  const match = tzPart.match(/GMT([+-]\d{1,2}(?::?\d{2})?)/);
-  if (!match) {
+  // Parse the local representation back
+  const m = localStr.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})/);
+  if (!m) {
     logger.warn({ dateStr, TIMEZONE }, "Could not resolve timezone offset, passing through");
     return dateStr;
   }
 
-  // Normalize to ±HH:MM format
-  let offset = match[1];
-  if (!offset.includes(":")) {
-    // "GMT-7" → "-07:00", "GMT+10" → "+10:00"
-    const sign = offset[0];
-    const hours = offset.slice(1).padStart(2, "0");
-    offset = `${sign}${hours}:00`;
-  } else {
-    const sign = offset[0];
-    const [h, m] = offset.slice(1).split(":");
-    offset = `${sign}${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
-  }
+  const localDate = new Date(`${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:${m[6]}Z`);
+  const offsetMs = localDate.getTime() - asUtc.getTime();
 
-  return `${dateStr}${offset}`;
+  // The user's input IS in the local timezone, so subtract the offset to get UTC
+  const utcMs = new Date(dateStr + "Z").getTime() - offsetMs;
+  return new Date(utcMs).toISOString();
 }
 
 // --- Twitter text length calculation ---
