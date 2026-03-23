@@ -16,6 +16,58 @@ import { createPost } from "./client.js";
 import { prepareMediaItems, isDocumentFile } from "../media/handler.js";
 import { logger } from "../logger.js";
 
+// --- Timezone handling ---
+
+const TIMEZONE = "America/Los_Angeles";
+
+/**
+ * If a datetime string has no timezone offset, interpret it in the configured
+ * timezone and return a proper ISO string with offset.
+ * Notion returns bare datetimes like "2026-03-25T10:00:00.000" with no offset.
+ */
+function applyTimezone(dateStr: string): string {
+  // Already has timezone info (Z, +HH:MM, or -HH:MM at end)
+  if (/[Zz]$/.test(dateStr) || /[+-]\d{2}:\d{2}$/.test(dateStr)) {
+    return dateStr;
+  }
+
+  // Date-only (no time component) — pass through as-is
+  if (!dateStr.includes("T")) {
+    return dateStr;
+  }
+
+  // Use Intl to get the UTC offset for the configured timezone at the given date
+  const date = new Date(dateStr + "Z"); // parse as UTC temporarily
+  const formatter = new Intl.DateTimeFormat("en-US", {
+    timeZone: TIMEZONE,
+    timeZoneName: "shortOffset",
+  });
+  const parts = formatter.formatToParts(date);
+  const tzPart = parts.find((p) => p.type === "timeZoneName")?.value ?? "";
+
+  // tzPart is like "GMT-7" or "GMT-8" or "GMT+5:30"
+  const match = tzPart.match(/GMT([+-]\d{1,2}(?::?\d{2})?)/);
+  if (!match) {
+    logger.warn({ dateStr, TIMEZONE }, "Could not resolve timezone offset, passing through");
+    return dateStr;
+  }
+
+  // Normalize to ±HH:MM format
+  let offset = match[1];
+  if (!offset.includes(":")) {
+    // "GMT-7" → "-07:00", "GMT+10" → "+10:00"
+    const sign = offset[0];
+    const hours = offset.slice(1).padStart(2, "0");
+    offset = `${sign}${hours}:00`;
+  } else {
+    const sign = offset[0];
+    const [h, m] = offset.slice(1).split(":");
+    offset = `${sign}${h.padStart(2, "0")}:${m.padStart(2, "0")}`;
+  }
+
+  return `${dateStr}${offset}`;
+}
+
 // --- Twitter text length calculation ---
 
 const URL_REGEX = /https?:\/\/\S+/g;
@@ -269,7 +321,7 @@ export function buildCreatePostRequest(
 
   // Scheduling
   if (post.scheduledDate) {
-    req.scheduledFor = post.scheduledDate;
+    req.scheduledFor = applyTimezone(post.scheduledDate);
   } else {
     req.publishNow = true;
   }
