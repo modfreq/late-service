@@ -7,6 +7,11 @@ import { registerPageRoutes } from "./routes/pages.js";
 export function createServer(config: AppConfig): FastifyInstance {
   const app = Fastify({ logger: false });
 
+  // Allow HTMX POST requests with empty bodies
+  app.addContentTypeParser("application/x-www-form-urlencoded", (_req, _payload, done) => {
+    done(null, undefined);
+  });
+
   registerApiRoutes(app, config);
   registerPageRoutes(app, config);
 
