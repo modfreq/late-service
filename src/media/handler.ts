@@ -47,7 +47,9 @@ export function prepareMediaItems(files: NotionMediaFile[]): LateMediaItem[] {
 export async function validateMediaUrls(files: NotionMediaFile[]): Promise<void> {
   const results = await Promise.allSettled(
     files.map(async (f) => {
-      const res = await fetch(f.url, { method: "HEAD" });
+      const controller = new AbortController();
+      const res = await fetch(f.url, { signal: controller.signal });
+      controller.abort();
       if (!res.ok) {
         throw new Error(`Media "${f.name}" URL returned ${res.status}`);
       }
