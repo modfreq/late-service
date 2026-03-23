@@ -51,7 +51,12 @@ export function projectPage(data: ProjectPageData): string {
             ? `<button
                 hx-post="/api/posts/${p.id}/retry"
                 hx-swap="outerHTML"
-                class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Retry</button>`
+                class="px-2 py-1 text-xs bg-blue-600 text-white rounded hover:bg-blue-700">Retry</button>
+              <button
+                hx-post="/api/posts/${p.notion_page_id}/clear"
+                hx-target="closest tr"
+                hx-swap="outerHTML"
+                class="px-2 py-1 text-xs bg-red-600 text-white rounded hover:bg-red-700 ml-1">Clear</button>`
             : ""}
         </td>
       </tr>`).join("\n");

@@ -251,6 +251,12 @@ export function getActivityFiltered(opts: {
     .all(...params) as any[];
 }
 
+export function deletePost(notionPageId: string): void {
+  getDb()
+    .prepare("DELETE FROM sync_posts WHERE notion_page_id = ?")
+    .run(notionPageId);
+}
+
 export function getAllPosts(): SyncPost[] {
   return getDb()
     .prepare("SELECT * FROM sync_posts ORDER BY created_at DESC")

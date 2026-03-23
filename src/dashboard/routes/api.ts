@@ -8,7 +8,9 @@ import {
   getRecentActivity,
   updatePost,
   findPostByNotionId,
+  deletePost,
 } from "../../db/queries.js";
+import { clearSyncError, updateStatus } from "../../notion/writer.js";
 import { activityRows } from "../views/home.js";
 
 const startTime = Date.now();
@@ -80,6 +82,27 @@ export function registerApiRoutes(
     } catch {
       reply.status(500);
       return { error: "Failed to retry post" };
+    }
+  });
+
+  // Clear a failed post (delete record, reset Notion status to Scheduled)
+  app.post<{ Params: { id: string } }>("/api/posts/:id/clear", async (req, reply) => {
+    const notionPageId = req.params.id;
+    const post = findPostByNotionId(notionPageId);
+    if (!post) {
+      reply.status(404);
+      return { error: "Post not found" };
+    }
+
+    try {
+      deletePost(notionPageId);
+      await clearSyncError(notionPageId);
+      await updateStatus(notionPageId, "Scheduled");
+      reply.type("text/html");
+      return `<tr class="border-t border-gray-100"><td colspan="7" class="px-4 py-2 text-sm text-gray-400 text-center">Cleared — will be reprocessed next poll</td></tr>`;
+    } catch {
+      reply.status(500);
+      return { error: "Failed to clear post" };
     }
   });
 }
