@@ -267,9 +267,11 @@ export function buildCreatePostRequest(
     req.threadItems = threadItems;
   }
 
-  // Scheduling
+  // Scheduling — strip milliseconds to match Late's expected format,
+  // and pass timezone so Late interprets the time correctly.
   if (post.scheduledDate) {
-    req.scheduledFor = post.scheduledDate;
+    logger.info({ rawScheduledDate: post.scheduledDate }, "Notion scheduledDate value");
+    req.scheduledFor = post.scheduledDate.replace(/\.\d{3}$/, "");
     req.timezone = "America/Los_Angeles";
   } else {
     req.publishNow = true;
