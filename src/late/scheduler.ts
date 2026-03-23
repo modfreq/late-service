@@ -16,53 +16,6 @@ import { createPost } from "./client.js";
 import { prepareMediaItems, isDocumentFile } from "../media/handler.js";
 import { logger } from "../logger.js";
 
-// --- Timezone handling ---
-
-const TIMEZONE = "America/Los_Angeles";
-
-/**
- * Convert a bare datetime (no timezone) from the configured timezone to UTC ISO string.
- * Notion returns datetimes like "2026-03-25T10:00:00.000" with no offset.
- * Late treats all times as UTC, so we need to convert: 10:00 AM PST → 18:00 UTC.
- */
-function applyTimezone(dateStr: string): string {
-  // Already has timezone info — pass through
-  if (/[Zz]$/.test(dateStr) || /[+-]\d{2}:\d{2}$/.test(dateStr)) {
-    return dateStr;
-  }
-
-  // Date-only (no time component) — pass through
-  if (!dateStr.includes("T")) {
-    return dateStr;
-  }
-
-  // Get the UTC offset for TIMEZONE at this date by comparing formatted local vs UTC
-  const asUtc = new Date(dateStr + "Z");
-  const formatter = new Intl.DateTimeFormat("en-US", {
-    timeZone: TIMEZONE,
-    year: "numeric", month: "2-digit", day: "2-digit",
-    hour: "2-digit", minute: "2-digit", second: "2-digit",
-    hour12: false,
-  });
-  const localStr = formatter.format(asUtc);
-  // localStr is like "03/25/2026, 03:00:00" — the TIMEZONE representation of the UTC time
-  // The difference tells us the offset
-
-  // Parse the local representation back
-  const m = localStr.match(/(\d{2})\/(\d{2})\/(\d{4}),\s*(\d{2}):(\d{2}):(\d{2})/);
-  if (!m) {
-    logger.warn({ dateStr, TIMEZONE }, "Could not resolve timezone offset, passing through");
-    return dateStr;
-  }
-
-  const localDate = new Date(`${m[3]}-${m[1]}-${m[2]}T${m[4]}:${m[5]}:${m[6]}Z`);
-  const offsetMs = localDate.getTime() - asUtc.getTime();
-
-  // The user's input IS in the local timezone, so subtract the offset to get UTC
-  const utcMs = new Date(dateStr + "Z").getTime() - offsetMs;
-  return new Date(utcMs).toISOString();
-}
-
 // --- Twitter text length calculation ---
 
 const URL_REGEX = /https?:\/\/\S+/g;
@@ -316,7 +269,8 @@ export function buildCreatePostRequest(
 
   // Scheduling
   if (post.scheduledDate) {
-    req.scheduledFor = applyTimezone(post.scheduledDate);
+    req.scheduledFor = post.scheduledDate;
+    req.timezone = "America/Los_Angeles";
   } else {
     req.publishNow = true;
   }

@@ -82,6 +82,7 @@ export interface CreatePostRequest {
   mediaItems?: LateMediaItem[];
   threadItems?: LateThreadItem[];
   scheduledFor?: string;
+  timezone?: string;
   publishNow?: boolean;
 }
 
