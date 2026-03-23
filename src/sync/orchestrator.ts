@@ -1,6 +1,7 @@
 import { pollAllProjects, fetchNotionPost } from "../notion/poller.js";
 import { validatePost, schedulePost } from "../late/scheduler.js";
 import { validateMediaUrls } from "../media/handler.js";
+import { uploadMediaToR2 } from "../media/r2.js";
 import { getPost } from "../late/client.js";
 import {
   findPostByNotionId,
@@ -58,18 +59,19 @@ export async function processPost(
     return;
   }
 
-  // Validate media URLs are accessible
+  // Validate media URLs are accessible, then upload to R2
   if (post.media.length > 0) {
     try {
       await validateMediaUrls(post.media);
+      post = { ...post, media: await uploadMediaToR2(post.pageId, post.media) };
     } catch (err) {
       const msg = err instanceof Error ? err.message : String(err);
-      logger.warn({ postName: post.name }, `Media validation failed: ${msg}`);
+      logger.warn({ postName: post.name }, `Media preparation failed: ${msg}`);
       await writeSyncError(post.pageId, msg);
       insertPost({
         notion_page_id: post.pageId,
         project_id: project.id,
-        status: "failed",
+        status: "failed_retryable",
       });
       return;
     }
@@ -255,7 +257,7 @@ export async function runRetryCycle(config: AppConfig): Promise<void> {
 
     try {
       // Re-fetch Notion page for fresh media URLs
-      const freshPost = await fetchNotionPost(post.notion_page_id);
+      let freshPost = await fetchNotionPost(post.notion_page_id);
       if (!freshPost) {
         logger.warn(
           { pageId: post.notion_page_id },
@@ -268,9 +270,10 @@ export async function runRetryCycle(config: AppConfig): Promise<void> {
         continue;
       }
 
-      // Re-validate media
+      // Re-validate media and upload to R2
       if (freshPost.media.length > 0) {
         await validateMediaUrls(freshPost.media);
+        freshPost = { ...freshPost, media: await uploadMediaToR2(freshPost.pageId, freshPost.media) };
       }
 
       // Re-attempt scheduling

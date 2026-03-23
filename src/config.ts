@@ -21,6 +21,11 @@ const envSchema = z.object({
   ALERT_TO: z.string().default(""),
   NOTION_POLL_INTERVAL_MINUTES: z.coerce.number().int().min(1).default(5),
   LOG_LEVEL: z.string().default("info"),
+  R2_ACCOUNT_ID: z.string().default(""),
+  R2_ACCESS_KEY_ID: z.string().default(""),
+  R2_SECRET_ACCESS_KEY: z.string().default(""),
+  R2_BUCKET_NAME: z.string().default(""),
+  R2_PUBLIC_URL: z.string().default(""),
 });
 
 export type EnvConfig = z.infer<typeof envSchema>;

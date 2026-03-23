@@ -4,6 +4,7 @@ import { initDb, closeDb } from "./db/connection.js";
 import { runMigrations } from "./db/migrate.js";
 import { initNotion } from "./notion/client.js";
 import { initLate } from "./late/client.js";
+import { initR2 } from "./media/r2.js";
 import { runPollCycle } from "./sync/orchestrator.js";
 import { startCrons, stopCrons } from "./scheduler/cron.js";
 import { createServer, startServer } from "./dashboard/server.js";
@@ -31,6 +32,9 @@ async function main() {
 
   // Initialize Late client
   initLate(config.env.LATE_API_KEY);
+
+  // Initialize R2 (optional — no-op if env vars missing)
+  initR2(config.env);
 
   // Initial poll cycle
   try {
