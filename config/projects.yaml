@@ -14,3 +14,11 @@ projects:
       instagram:
         accountId: "acc_zzz"
         textProperty: "Instagram Text"
+  - id: "hdshot"
+    name: "Hdshot.com"
+    enabled: true
+    notion:
+      databaseId: "3281a1f5-5659-817e-b543-000bdc5d6390"
+    platforms:
+      pinterest:
+        accountId: "69c0cf056cb7b8cf4c9041de"
