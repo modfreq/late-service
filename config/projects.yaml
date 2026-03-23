@@ -18,7 +18,7 @@ projects:
     name: "Hdshot.com"
     enabled: true
     notion:
-      databaseId: "3281a1f5-5659-817e-b543-000bdc5d6390"
+      databaseId: "3281a1f556598084ae10d2ed45d4d545"
     platforms:
       pinterest:
         accountId: "69c0cf056cb7b8cf4c9041de"
